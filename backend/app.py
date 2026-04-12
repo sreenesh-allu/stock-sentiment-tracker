@@ -1,4 +1,4 @@
-import os, requests
+import os, requests, time
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -22,9 +22,12 @@ def sentiments():
     response = requests.get(url)
     data = response.json()
     
+    articles = data.get("articles") or []
+    headlines_fetched = len(articles)
     results = []
     analyzer = SentimentIntensityAnalyzer()
-    for item in data["articles"]:
+    t0 = time.perf_counter()
+    for item in articles:
         if (item["title"] is None):
             continue
         
@@ -38,6 +41,13 @@ def sentiments():
         else:
             results.append({"headline" : item["title"], "sentiment" : "neutral", "score" : score})
 
+    sentiment_analysis_ms = (time.perf_counter() - t0) * 1000
+    headlines_analyzed = len(results)
+    print(
+        f"[sentiments] ticker={ticker!r} | headlines fetched: {headlines_fetched} | "
+        f"headlines analyzed: {headlines_analyzed} | "
+        f"sentiment analysis latency: {sentiment_analysis_ms:.2f} ms"
+    )
 
     return jsonify(results)
 
